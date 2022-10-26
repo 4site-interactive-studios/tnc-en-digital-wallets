@@ -1,5 +1,5 @@
 export class DigitalWallets {
-  private stripeIteration = 0;
+  private isLoaded = false;
   private dwContainer = document.querySelector(
     "#en__digitalWallet"
   ) as HTMLElement;
@@ -10,7 +10,6 @@ export class DigitalWallets {
       this.logError("Not Running");
       return;
     }
-
     // Document Load
     if (document.readyState !== "loading") {
       this.run();
@@ -24,35 +23,15 @@ export class DigitalWallets {
     return !!this.getPageId() && !!this.dwContainer && !!this.sbContainer;
   }
   private run() {
-    if (this.stripeIteration >= 10) {
-      this.logError("Stripe Failed to load - Aborting");
-      return;
-    }
-    while (
-      !this.checkNested(
-        (window as any).EngagingNetworks,
-        "require",
-        "_defined",
-        "enStripeButtons",
-        "stripeButtons",
-        "paymentRequest",
-        "canMakePayment"
-      )
-    ) {
-      this.log("Waiting for Stripe");
-      window.setTimeout(() => {
-        this.stripeIteration++;
-        this.run();
-      }, 10);
-      return;
-    }
     this.checkDebug();
-    (
-      window as any
-    ).EngagingNetworks.require._defined.enStripeButtons.stripeButtons.paymentRequest
-      .canMakePayment()
-      .then((result: any) => {
-        if (result) {
+    const config = { attributes: true, childList: true, subtree: true };
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (
+          mutation.type === "childList" &&
+          mutation.addedNodes.length > 0 &&
+          !this.isLoaded
+        ) {
           this.log("Enabled");
           this.renderDwPaymentOption();
           this.addEventListeners();
@@ -60,12 +39,14 @@ export class DigitalWallets {
           const dwChoice = localStorage.getItem(`dwChoice-${this.getPageId()}`);
           if (dwChoice === "true") {
             this.checkDigitalWallets();
+          } else {
+            this.uncheckDigitalWallets();
           }
-        } else {
-          this.logError("Disabled");
-          this.hideDwContainer();
+          this.isLoaded = true;
         }
       });
+    });
+    observer.observe(this.dwContainer, config);
   }
 
   private renderDwPaymentOption() {
@@ -178,11 +159,58 @@ export class DigitalWallets {
     if (dwInput) dwInput.checked = true;
   }
   private parseENDependencies() {
-    return (
-      window as any
-    ).EngagingNetworks.require._defined.enDependencies.dependencies.parseDependencies(
-      (window as any).EngagingNetworks.dependencies
-    );
+    if (
+      (window as any).EngagingNetworks &&
+      typeof (window as any).EngagingNetworks?.require?._defined?.enDependencies
+        ?.dependencies?.parseDependencies === "function"
+    ) {
+      const customDependencies: object[] = [];
+      if ("dependencies" in (window as any).EngagingNetworks) {
+        const amountContainer = document.querySelector(
+          ".en__field--donationAmt"
+        ) as HTMLDivElement;
+        if (amountContainer) {
+          let amountID =
+            [...amountContainer.classList.values()]
+              .filter(
+                (v) =>
+                  v.startsWith("en__field--") && Number(v.substring(11)) > 0
+              )
+              .toString()
+              .match(/\d/g)
+              ?.join("") || "";
+          if (amountID) {
+            (window as any).EngagingNetworks.dependencies.forEach(
+              (dependency: {
+                [key: string]: {
+                  [key: string]: string;
+                }[];
+              }) => {
+                if ("actions" in dependency && dependency.actions.length > 0) {
+                  let amountIdFound = false;
+                  dependency.actions.forEach((action) => {
+                    if ("target" in action && action.target == amountID) {
+                      amountIdFound = true;
+                    }
+                  });
+                  if (!amountIdFound) {
+                    customDependencies.push(dependency);
+                  }
+                }
+              }
+            );
+            if (customDependencies.length > 0) {
+              (
+                window as any
+              ).EngagingNetworks.require._defined.enDependencies.dependencies.parseDependencies(
+                customDependencies
+              );
+              this.log("Dependencies parsed");
+            }
+          }
+        }
+      }
+    }
   }
   private uncheckDigitalWallets() {
     const payMethods = document.querySelector(".payMethods") as HTMLDivElement;
@@ -227,14 +255,5 @@ export class DigitalWallets {
         `%c4Site Digital Wallets - ${message} `,
         "color: white; background: red; font-size: 1.2rem; font-weight: bold; padding: 2px; border-radius: 2px;"
       );
-  }
-  private checkNested(obj: any, ...args: string[]) {
-    for (let i = 0; i < args.length; i++) {
-      if (!obj || !Object.getOwnPropertyDescriptor(obj, args[i])) {
-        return false;
-      }
-      obj = obj[args[i]];
-    }
-    return true;
   }
 }
