@@ -104,3 +104,49 @@
   background: #007931;
   color: #fff;
 }
+/* Add the missing spacing between Credit Card and E-Check - https://cln.sh/7ZQimS */
+@media screen and (min-width: 992px) {
+  #_ff-container
+    .cc-check
+    .en__field--payment-method-cc-and-ach-
+    .en__field__element--radio {
+    gap: 27px !important;
+  }
+}
+
+/* Make the Credit Card icons fit in their boundary when it shrinks - https://cln.sh/v0nMFQ */
+@media screen and (min-width: 768px) {
+  #_ff-container
+    .cc-check
+    .en__field--payment-method-cc-and-ach-
+    .en__field__item:first-of-type:before {
+    background-size: min(calc(100% - 1em), 209px) !important;
+  }
+}
+
+/* Fix the display of the Payment Select buttons on Mobile */
+@media screen and (max-width: 768px) {
+  .cc-check._ppal .en__component--formblock {
+    display: grid !important;
+    grid-template-columns: min-content !important;
+    grid-template-rows: auto !important;
+    gap: 0px 0p !important;
+    grid-template-areas: "digital-wallets digital-wallets digital-wallets" "credit-card-check credit-card-check paypal" !important;
+  }
+  #_ff-container .cc-check .en__field--payment-method-cc-and-ach- {
+    grid-area: credit-card-check !important;
+    margin-bottom: 0 !important;
+  }
+  #_ff-container .en__field--payment-method-paypal {
+    grid-area: paypal !important;
+    width: 100% !important;
+  }
+  .en__field--payment-method-digital-wallets {
+    grid-area: digital-wallets !important;
+    max-width: 100% !important;
+  }
+}
+
+#en__digitalWallet {
+  margin-top: 2.75rem;
+}
