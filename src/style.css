@@ -147,6 +147,29 @@
   }
 }
 
+/* Fix the width of the Payment Select buttons on Desktop = https://cln.sh/E7TRcb */
+@media screen and (min-width: 767px) {
+  #_ff-container .cc-check .en__field--payment-method-cc-and-ach- {
+    flex-basis: 50%;
+    max-width: 100% !important;
+  }
+
+  #_ff-container .en__field--payment-method-paypal {
+    flex-basis: calc(25% - 13.5px);
+    max-width: 100% !important;
+  }
+
+  .en__field--payment-method-digital-wallets {
+    flex-basis: calc(25% - 13.5px);
+    max-width: 100% !important;
+  }
+
+  #en__field_digital_wallets + label {
+    white-space: nowrap;
+  }
+}
+
+/* Mirror the margin on the vanilla Submit button */
 #en__digitalWallet {
   margin-top: 2.75rem;
 }
